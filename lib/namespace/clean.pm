@@ -144,6 +144,9 @@ my $RemoveSubs = sub {
     my $store   = shift;
     my $cleanee_stash = Package::Stash->new($cleanee);
     my $deleted_stash = Package::Stash->new("namespace::clean::deleted::$cleanee");
+    my $cleanee_stash_name = $cleanee_stash->name;
+    my $deleted_stash_name = $deleted_stash->name;
+    my $cleanee_stash_namespace = $cleanee_stash->namespace;
   SYMBOL:
     for my $f (@_) {
         my $variable = "&$f";
@@ -152,15 +155,15 @@ my $RemoveSubs = sub {
 
         next SYMBOL unless $cleanee_stash->has_symbol($variable);
 
-        if (ref(\$cleanee_stash->namespace->{$f}) eq 'GLOB') {
+        if (ref(\$cleanee_stash_namespace->{$f}) eq 'GLOB') {
             # convince the Perl debugger to work
             # it assumes that sub_fullname($sub) can always be used to find the CV again
             # since we are deleting the glob where the subroutine was originally
             # defined, that assumption no longer holds, so we need to move it
             # elsewhere and point the CV's name to the new glob.
             my $sub = $cleanee_stash->get_symbol($variable);
-            if ( sub_fullname($sub) eq ($cleanee_stash->name . "::$f") ) {
-                my $new_fq = $deleted_stash->name . "::$f";
+            if ( sub_fullname($sub) eq ($cleanee_stash_name . "::$f") ) {
+                my $new_fq = $deleted_stash_name . "::$f";
                 subname($new_fq, $sub);
                 $deleted_stash->add_symbol($variable, $sub);
             }
